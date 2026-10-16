@@ -107,21 +107,44 @@ python3 render_lineage.py record --project DIR --url https://… --sha256 <sha25
 
 ## How models are placed in columns
 
-Sources and seeds go in **Sources**; snapshots in **Snapshots**. Models are matched
-against the rules below, by name prefix first, then by folder (any directory on the
-model's path under `models/`). The first match wins. These follow dbt Labs'
-[project structure guide](https://docs.getdbt.com/best-practices/how-we-structure/1-guide-overview).
+Sources and seeds go in **Sources**; snapshots in **Snapshots**. Every model is checked
+against a list of rules, in three passes:
 
-| Column | Name prefixes | Folders |
-|---|---|---|
-| Staging | `base_`, `stg_` | `base`, `staging`, `stage`, `stg` |
-| Intermediate | `int_` | `intermediate`, `int` |
-| Marts | `fct_`, `fact_`, `dim_`, `mart_` | `marts`, `mart`, `core` |
-| Reporting | `rpt_`, `report_` | `reporting`, `reports`, `report` |
-| Other | anything else | |
+1. **dbt tags.** Do any of the model's tags (`tags:` in its config or in
+   `dbt_project.yml`) match a rule's tags?
+2. **Name prefix.** Does the model's name start with one of a rule's prefixes?
+3. **Folder.** Is any directory on the model's path under `models/` one of a rule's
+   folders?
 
-If your project uses other conventions, set your own columns and rules in
-`lineage.yml`.
+A tag is a deliberate choice, so it beats the name and the folder. Within a pass, the
+first rule that matches wins. Matching ignores case. A model nothing matches goes in
+**Other**.
+
+The default rules follow dbt Labs'
+[project structure guide](https://docs.getdbt.com/best-practices/how-we-structure/1-guide-overview):
+
+| Column | Tags | Name prefixes | Folders |
+|---|---|---|---|
+| Staging | `base`, `staging`, `stg` | `base_`, `stg_` | `base`, `staging`, `stage`, `stg` |
+| Intermediate | `intermediate`, `int` | `int_` | `intermediate`, `int` |
+| Marts | `fact`, `facts`, `fct`, `dimension`, `dimensions`, `dim`, `marts`, `mart` | `fct_`, `fact_`, `dim_`, `mart_` | `marts`, `mart`, `core` |
+| Reporting | `reporting`, `report`, `reports` | `rpt_`, `report_` | `reporting`, `reports`, `report` |
+| Other | anything else | | |
+
+If your project marks its layers another way, set your own columns and rules in
+`lineage.yml`. For example, a project that tags every model with its medallion layer
+needs only tags:
+
+```yaml
+layers:
+  - {id: bronze, label: Bronze}
+  - {id: silver, label: Silver}
+  - {id: gold, label: Gold}
+rules:
+  - {kind: bronze, label: Bronze tables, layer: bronze, tags: [bronze]}
+  - {kind: silver, label: Silver tables, layer: silver, tags: [silver]}
+  - {kind: gold, label: Gold tables, layer: gold, tags: [gold]}
+```
 
 ## Configuration: `lineage.yml`
 
@@ -135,7 +158,7 @@ unknown key is an error, so a typo can't fail silently. See
 | `partitions` | A list of `{label, sources}`. The filter then lists these groups instead of single sources; unlisted sources go in "Other sources". A listed source the manifest doesn't have shows up as a warning. |
 | `partition_name` | The filter's name when partitions are set, e.g. `Region`. |
 | `layers` | The columns, in order, as `{id, label}`. `source` and `other` are always added. |
-| `rules` | Replaces the default rules. Each is `{kind, label, layer, prefixes, folders}`; `layer` must be one of the `layers`. |
+| `rules` | Replaces the default rules. Each is `{kind, label, layer, tags, prefixes, folders}`: `kind` and `layer` are required, `layer` must be one of the `layers`, and `tags`, `prefixes` and `folders` take a list or a single string. A rule can use any of the three; see [How models are placed in columns](#how-models-are-placed-in-columns). |
 | `shared_kinds` | Kinds (e.g. `dim`) that don't pass their source systems downstream, so a mart that joins a conformed dimension isn't tagged with every source that feeds the dimension. |
 
 ## Large projects

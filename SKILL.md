@@ -89,16 +89,21 @@ layers:                         # left-to-right columns; source and other are al
   - {id: source, label: Sources}
   - {id: staging, label: Staging}
   - {id: marts, label: Marts}
-rules:                          # first match wins: name prefix, then folder under models/
-  - {kind: stg, label: "Staging (stg_)", layer: staging, prefixes: [stg_], folders: [staging]}
-  - {kind: fct, label: "Facts (fct_)", layer: marts, prefixes: [fct_]}
+rules:                          # passes: dbt tags, then name prefix, then folder under models/
+  - {kind: stg, label: "Staging (stg_)", layer: staging, tags: [staging], prefixes: [stg_], folders: [staging]}
+  - {kind: fct, label: "Facts (fct_)", layer: marts, tags: [fact], prefixes: [fct_]}
 shared_kinds: [dim]             # kinds that do not pass their source systems downstream
 ```
 
-Defaults follow dbt Labs' project-structure conventions: `base_`/`stg_` → Staging,
-`int_` → Intermediate, `fct_`/`dim_`/`mart_` or `models/marts` → Marts,
-`rpt_` or `models/reporting` → Reporting; snapshots get their own column; anything
-unmatched → Other.
+A model's column comes from its **dbt tags first**, then its name prefix, then its
+folder; within a pass the first matching rule wins (case-insensitive). Defaults follow
+dbt Labs' project-structure conventions: tag `staging`/`stg` or `base_`/`stg_` →
+Staging, `intermediate`/`int_` → Intermediate, `fact`/`dim`/`marts` or
+`fct_`/`dim_`/`mart_` or `models/marts` → Marts, `reporting` or `rpt_` → Reporting;
+snapshots get their own column; anything unmatched → Other.
+
+When a project marks layers with tags the defaults don't know (look at the manifest's
+most common model tags), offer the user a `lineage.yml` with tag rules for them.
 
 ## Size tiers
 

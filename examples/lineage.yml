@@ -23,15 +23,17 @@ layers:
   - {id: reporting, label: Reporting}
   - {id: other, label: Other}
 
-# How models are put into columns. First match wins: every rule's name prefixes are
-# tried first, then every rule's folders (any directory on the path under models/).
-# Supplying `rules` replaces the defaults entirely.
+# How models are put into columns, in three passes: every rule's dbt tags first, then
+# every rule's name prefixes, then every rule's folders (any directory on the path
+# under models/). Within a pass the first matching rule wins; matching ignores case.
+# Each of tags, prefixes and folders is optional. Supplying `rules` replaces the
+# defaults entirely.
 rules:
-  - {kind: stg, label: "Staging models (stg_)", layer: staging, prefixes: [stg_], folders: [staging]}
-  - {kind: int, label: "Intermediate models (int_)", layer: intermediate, prefixes: [int_], folders: [intermediate]}
-  - {kind: fct, label: "Facts (fct_)", layer: marts, prefixes: [fct_]}
-  - {kind: dim, label: "Dimensions (dim_)", layer: marts, prefixes: [dim_]}
-  - {kind: rpt, label: "Reports (rpt_)", layer: reporting, prefixes: [rpt_], folders: [reporting]}
+  - {kind: stg, label: "Staging models (stg_)", layer: staging, tags: [staging], prefixes: [stg_], folders: [staging]}
+  - {kind: int, label: "Intermediate models (int_)", layer: intermediate, tags: [intermediate], prefixes: [int_], folders: [intermediate]}
+  - {kind: fct, label: "Facts (fct_)", layer: marts, tags: [fact], prefixes: [fct_]}
+  - {kind: dim, label: "Dimensions (dim_)", layer: marts, tags: [dimension], prefixes: [dim_]}
+  - {kind: rpt, label: "Reports (rpt_)", layer: reporting, tags: [reporting], prefixes: [rpt_], folders: [reporting]}
 
 # Kinds that are shared across sources (conformed dimensions, say): they keep their own
 # source systems, but do not pass them on, so a mart built on dim_customers is not

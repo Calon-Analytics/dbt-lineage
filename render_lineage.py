@@ -56,18 +56,24 @@ DEFAULT_LAYERS: Tuple[Tuple[str, str], ...] = (
     ("intermediate", "Intermediate"), ("marts", "Marts"), ("reporting", "Reporting"),
     ("other", "Other"),
 )
-#: Default model rules, first match wins: (kind, label, layer, name prefixes, folders).
-#: A folder is any directory on the model's path under models/. Override with ``rules:``.
-DEFAULT_RULES: Tuple[Tuple[str, str, str, Tuple[str, ...], Tuple[str, ...]], ...] = (
-    ("base", "Base models (base_)", "staging", ("base_",), ("base",)),
-    ("stg", "Staging models (stg_)", "staging", ("stg_",), ("staging", "stage", "stg")),
-    ("int", "Intermediate models (int_)", "intermediate", ("int_",),
-     ("intermediate", "int")),
-    ("fct", "Facts (fct_)", "marts", ("fct_", "fact_"), ()),
-    ("dim", "Dimensions (dim_)", "marts", ("dim_",), ()),
-    ("mart", "Mart models", "marts", ("mart_",), ("marts", "mart", "core")),
-    ("rpt", "Reports (rpt_)", "reporting", ("rpt_", "report_"),
-     ("reporting", "reports", "report")),
+#: Default model rules: (kind, label, layer, dbt tags, name prefixes, folders).
+#: Matching runs in three passes: every rule's tags, then every rule's name prefixes,
+#: then every rule's folders (any directory on the path under models/). The first rule
+#: to match in the earliest pass wins. Override with ``rules:`` in lineage.yml.
+Rule = Tuple[str, str, str, Tuple[str, ...], Tuple[str, ...], Tuple[str, ...]]
+DEFAULT_RULES: Tuple[Rule, ...] = (
+    ("base", "Base models (base_)", "staging", ("base",), ("base_",), ("base",)),
+    ("stg", "Staging models (stg_)", "staging", ("staging", "stg"), ("stg_",),
+     ("staging", "stage", "stg")),
+    ("int", "Intermediate models (int_)", "intermediate", ("intermediate", "int"),
+     ("int_",), ("intermediate", "int")),
+    ("fct", "Facts (fct_)", "marts", ("fact", "facts", "fct"), ("fct_", "fact_"), ()),
+    ("dim", "Dimensions (dim_)", "marts", ("dimension", "dimensions", "dim"), ("dim_",),
+     ()),
+    ("mart", "Mart models", "marts", ("marts", "mart"), ("mart_",),
+     ("marts", "mart", "core")),
+    ("rpt", "Reports (rpt_)", "reporting", ("reporting", "report", "reports"),
+     ("rpt_", "report_"), ("reporting", "reports", "report")),
 )
 FIXED_KINDS = (("source", "Source tables"), ("seed", "Seeds"), ("snapshot", "Snapshots"))
 OTHER_KIND = ("model", "Other models")
@@ -121,11 +127,11 @@ class Scheme:
                 self.layers.insert(0 if needed == "source" else len(self.layers),
                                    (needed, needed.title()))
         rules = config.get("rules")
-        self.rules = ([(str(r["kind"]), str(r.get("label") or r["kind"]), str(r["layer"]),
-                        tuple(r.get("prefixes") or ()), tuple(r.get("folders") or ()))
-                       for r in rules] if rules else list(DEFAULT_RULES))
+        self.rules: List[Rule] = (
+            [_parse_rule(i, r) for i, r in enumerate(rules)] if rules
+            else list(DEFAULT_RULES))
         layer_ids = {layer for layer, _ in self.layers}
-        for kind, _label, layer, _p, _f in self.rules:
+        for kind, _label, layer, *_matchers in self.rules:
             if layer not in layer_ids:
                 raise Invalid(f"rule {kind!r} names layer {layer!r}, not in layers")
         self.snapshot_layer = "snapshots" if "snapshots" in layer_ids else "source"
@@ -146,16 +152,39 @@ class Scheme:
             return "seed", "source"
         if rtype == "snapshot":
             return "snapshot", self.snapshot_layer
+        tags = {str(t).lower() for t in resource.get("tags") or ()}
         name = (resource.get("name") or "").lower()
-        for kind, _label, layer, prefixes, _folders in self.rules:
-            if any(name.startswith(p) for p in prefixes):
-                return kind, layer
-        folders = [p.lower() for p in (resource.get("original_file_path") or "")
-                   .split("/")[1:-1]]
-        for kind, _label, layer, _prefixes, rule_folders in self.rules:
-            if any(f in folders for f in rule_folders):
-                return kind, layer
+        folders = {p.lower() for p in (resource.get("original_file_path") or "")
+                   .split("/")[1:-1]}
+        passes = (
+            lambda rule: bool(tags & set(rule[3])),
+            lambda rule: any(name.startswith(p) for p in rule[4]),
+            lambda rule: bool(folders & set(rule[5])),
+        )
+        for matches in passes:
+            for rule in self.rules:
+                if matches(rule):
+                    return rule[0], rule[2]
         return OTHER_KIND[0], "other"
+
+
+_RULE_KEYS = frozenset({"kind", "label", "layer", "tags", "prefixes", "folders"})
+
+
+def _parse_rule(index: int, raw: Any) -> Rule:
+    """One ``rules:`` entry; matchers are lower-cased, a bare string is a one-item list."""
+    if not isinstance(raw, dict) or not raw.get("kind") or not raw.get("layer"):
+        raise Invalid(f"rules[{index}] needs a kind and a layer")
+    unknown = set(raw) - _RULE_KEYS
+    if unknown:
+        raise Invalid(f"rules[{index}]: unknown keys {sorted(unknown)}")
+
+    def strings(key: str) -> Tuple[str, ...]:
+        value = raw.get(key) or ()
+        return tuple(str(v).lower() for v in ([value] if isinstance(value, str) else value))
+
+    return (str(raw["kind"]), str(raw.get("label") or raw["kind"]), str(raw["layer"]),
+            strings("tags"), strings("prefixes"), strings("folders"))
 
 
 # --- the Logic tab (plain SQL) --------------------------------------------------------

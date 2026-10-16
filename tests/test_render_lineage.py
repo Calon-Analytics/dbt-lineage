@@ -108,6 +108,47 @@ class RenderTests(unittest.TestCase):
         code, result = self.render()
         self.assertEqual((code, result["status"]), (5, "invalid"))
 
+    def set_tags(self, uid: str, tags: list) -> None:
+        manifest_path = self.project / "target" / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["nodes"][uid]["tags"] = tags
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    def test_a_tag_beats_the_name_and_folder(self) -> None:
+        # customer_report sits in models/reporting/, but is tagged as a mart.
+        self.set_tags("model.j.customer_report", ["nightly", "Marts"])
+        self.render()
+        node = {n["name"]: n for n in page_data(self.out)["nodes"]}["customer_report"]
+        self.assertEqual((node["layer"], node["kind"]), ("marts", "mart"))
+
+    def test_config_rules_can_match_on_tags_alone(self) -> None:
+        try:
+            import yaml  # noqa: F401
+        except ImportError:
+            self.skipTest("PyYAML not installed")
+        self.set_tags("model.j.int_order_totals", ["gold"])
+        (self.project / "lineage.yml").write_text(
+            "layers:\n  - {id: silver, label: Silver}\n  - {id: gold, label: Gold}\n"
+            "rules:\n  - {kind: gold, label: Gold tables, layer: gold, tags: gold}\n"
+            "  - {kind: silver, layer: silver, prefixes: [stg_]}\n", encoding="utf-8")
+        code, _ = self.render()
+        self.assertEqual(code, 0)
+        layers = {n["name"]: n["layer"] for n in page_data(self.out)["nodes"]}
+        self.assertEqual(layers["int_order_totals"], "gold")
+        self.assertEqual(layers["stg_orders"], "silver")
+        self.assertEqual(layers["fct_orders"], "other")
+
+    def test_a_rule_with_an_unknown_key_is_invalid(self) -> None:
+        try:
+            import yaml  # noqa: F401
+        except ImportError:
+            self.skipTest("PyYAML not installed")
+        (self.project / "lineage.yml").write_text(
+            "rules:\n  - {kind: x, layer: other, tag: [x]}\n", encoding="utf-8")
+        code, result = self.render()
+        self.assertEqual((code, result["status"]), (5, "invalid"))
+        self.assertIn("tag", result["detail"])
+
     def test_code_cannot_break_out_of_the_data_script(self) -> None:
         manifest_path = self.project / "target" / "manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

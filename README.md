@@ -42,8 +42,8 @@ works offline apart from the web fonts. The same manifest always gives the same 
 Install it for every project by linking the repo into your skills folder:
 
 ```bash
-git clone <this repo> ~/calon/os/dbt-lineage      # or wherever you keep it
-ln -s ~/calon/os/dbt-lineage ~/.claude/skills/dbt-lineage
+git clone https://github.com/Calon-Analytics/dbt-lineage.git ~/src/dbt-lineage
+ln -s ~/src/dbt-lineage ~/.claude/skills/dbt-lineage
 ```
 
 Then, in Claude Code, from inside a dbt project:
@@ -181,5 +181,9 @@ looping forever.
 
 ## Origin
 
-Carved out of the lineage page in Calon's Backbone platform, without its Data Vault
-specifics.
+Carved out of the lineage page in [Calon Analytics](https://calonanalytics.com)' Backbone
+platform, without its Data Vault specifics.
+
+## Licence
+
+[Apache License 2.0](LICENSE), the same licence as dbt Core.

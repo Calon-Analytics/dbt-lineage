@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Draw any dbt project's lineage page from its manifest: one self-contained HTML file.
 
-Carved out of Backbone's tenant lineage page (#1108). Every model, seed, snapshot and
+Carved out of Calon Analytics' Backbone lineage page. Every model, seed, snapshot and
 source by layer; what each model computes (its authored description first, then a
 summary parsed from the SQL: header comment, derived columns, filters, CTE steps);
 which tests guard it; and a filter by source system.

@@ -7,7 +7,7 @@ description: Draw any dbt project's lineage page from its target/manifest.json a
 
 Renders a dbt project's lineage page with the bundled `render_lineage.py` (stdlib
 Python; PyYAML only if a `lineage.yml` exists) and `template.html`, then publishes the
-file it wrote with the Artifact tool. Carved out of Backbone's `/backbone-lineage`.
+file it wrote with the Artifact tool. Carved out of Calon Analytics' Backbone lineage page.
 
 Invocation: `/dbt-lineage [project dir]`. Default: the nearest directory at or above
 the working directory holding `dbt_project.yml`. If several sit below it, ask which.

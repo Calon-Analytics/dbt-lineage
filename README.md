@@ -5,10 +5,11 @@ A single, self-contained HTML lineage page for any dbt project, drawn from
 that publishes the page as a Claude artifact at one stable URL, and as a plain Python
 script you can run anywhere.
 
-![The lineage page for the example Jaffle Shop project, with fct_orders selected: its upstream and downstream chain is highlighted and the panel shows its description, documented columns and derived columns](docs/screenshot.jpg)
+![The lineage page for the example Jaffle Shop project: six columns from sources to reports, with fct_orders selected and its upstream and downstream chain highlighted](docs/screenshot.jpg)
 
 *The [example Jaffle Shop project](examples/jaffle_shop) has three source systems, a seed, a
-snapshot, 25 models, 40 dependencies and 45 tests. Here `fct_orders` is selected.*
+snapshot, 25 models, 40 dependencies and 45 tests. Here `fct_orders` is selected: everything
+it reads from and everything that reads from it is highlighted.*
 
 ## Try it
 
@@ -37,6 +38,8 @@ You don't need dbt for this: the example's `target/manifest.json` is committed.
 - **The code**, and a search box.
 - **A filter by source system**: each model belongs to every dbt source upstream of
   it. You can group sources into partitions (regions, brands, business units).
+
+![The detail panel for fct_orders: its description, documented and undocumented columns, and the derived columns parsed from its SQL](docs/model-panel.jpg)
 
 The page is one file with its data embedded. It needs no server and no dbt docs site, and
 works offline apart from the web fonts. The same manifest always gives the same bytes.

@@ -1,0 +1,24 @@
+name: jaffle_shop
+version: "1.0.0"
+config-version: 2
+profile: jaffle_shop
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+snapshot-paths: ["snapshots"]
+test-paths: ["tests"]
+
+models:
+  jaffle_shop:
+    staging:
+      +materialized: view
+      +tags: ["staging"]
+    intermediate:
+      +materialized: ephemeral
+      +tags: ["intermediate"]
+    marts:
+      +materialized: table
+      +tags: ["marts"]
+    reporting:
+      +materialized: table
+      +tags: ["reporting"]

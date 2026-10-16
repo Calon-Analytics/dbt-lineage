@@ -1,0 +1,69 @@
+version: 2
+models:
+  - name: dim_customers
+    description: >
+      One row per customer, with their order history: first and latest order,
+      number of orders, lifetime spend, and whether they have ordered more than once.
+    columns:
+      - name: customer_id
+        description: The customer's id in the shop.
+        tests: [unique, not_null]
+      - name: customer_type
+        description: "'new' for one order, 'returning' for more."
+        tests:
+          - accepted_values: {values: ['new', 'returning']}
+      - name: lifetime_spend
+        description: The sum of the customer's order totals, tax included.
+      - name: first_ordered_at
+      - name: order_count
+  - name: dim_products
+    description: One row per product, with its price, supply cost and margin.
+    columns:
+      - name: product_id
+        tests: [unique, not_null]
+      - name: unit_margin
+        description: Price less the cost of the supplies one unit uses.
+  - name: dim_locations
+    description: One row per store, with its region from the operations seed.
+    columns:
+      - name: location_id
+        tests: [unique, not_null]
+  - name: fct_orders
+    description: >
+      One row per order with its totals, what was paid, and what the items cost
+      to make. The grain for every revenue figure.
+    columns:
+      - name: order_id
+        description: The order's id in the shop.
+        tests: [unique, not_null]
+      - name: customer_id
+        tests:
+          - not_null
+          - relationships: {to: ref('dim_customers'), field: customer_id}
+      - name: location_id
+        tests:
+          - relationships: {to: ref('dim_locations'), field: location_id}
+      - name: order_total
+        description: Subtotal plus tax, in dollars.
+      - name: amount_paid
+        description: Successful payments against the order.
+      - name: order_cost
+        description: The supply cost of every item on the order.
+  - name: fct_order_items
+    description: One row per item sold, with price, cost and margin.
+    columns:
+      - name: order_item_id
+        tests: [unique, not_null]
+      - name: order_id
+        tests:
+          - relationships: {to: ref('fct_orders'), field: order_id}
+  - name: fct_payments
+    description: One row per successful payment.
+    columns:
+      - name: payment_id
+        tests: [unique, not_null]
+  - name: fct_marketing_spend
+    description: Ad spend per channel per day.
+    columns:
+      - name: spend_id
+        tests: [unique, not_null]

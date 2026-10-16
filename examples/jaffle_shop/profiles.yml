@@ -1,0 +1,7 @@
+# Only for `dbt parse`, which writes target/manifest.json without connecting.
+jaffle_shop:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: jaffle_shop.duckdb

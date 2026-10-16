@@ -156,16 +156,24 @@ class Scheme:
         name = (resource.get("name") or "").lower()
         folders = {p.lower() for p in (resource.get("original_file_path") or "")
                    .split("/")[1:-1]}
-        passes = (
-            lambda rule: bool(tags & set(rule[3])),
-            lambda rule: any(name.startswith(p) for p in rule[4]),
-            lambda rule: bool(folders & set(rule[5])),
-        )
-        for matches in passes:
-            for rule in self.rules:
-                if matches(rule):
-                    return rule[0], rule[2]
-        return OTHER_KIND[0], "other"
+        by_tag = [r for r in self.rules if tags & set(r[3])]
+        by_prefix = [r for r in self.rules if any(name.startswith(p) for p in r[4])]
+        by_folder = [r for r in self.rules if folders & set(r[5])]
+        # The column: tags, then prefix, then folder; the first match in the earliest
+        # pass wins. The kind within that column: the most specific rule that names
+        # the same column (prefix, then tag, then folder), so a folder-wide tag such
+        # as "marts" still lets fct_/dim_ prefixes tell facts from dimensions.
+        for found in (by_tag, by_prefix, by_folder):
+            if found:
+                layer = found[0][2]
+                break
+        else:
+            return OTHER_KIND[0], "other"
+        for found in (by_prefix, by_tag, by_folder):
+            for rule in found:
+                if rule[2] == layer:
+                    return rule[0], layer
+        return OTHER_KIND[0], layer
 
 
 _RULE_KEYS = frozenset({"kind", "label", "layer", "tags", "prefixes", "folders"})

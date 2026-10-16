@@ -1,0 +1,10 @@
+version: 2
+models:
+  - name: rpt_daily_revenue
+    description: Revenue, orders and margin per store per day. Feeds the finance dashboard.
+  - name: rpt_customer_ltv
+    description: Lifetime value by month of first order (cohort), for the retention review.
+  - name: rpt_marketing_roas
+    description: Return on ad spend per channel per month.
+  - name: rpt_store_performance
+    description: Each store's revenue, margin and repeat-customer rate, month by month.

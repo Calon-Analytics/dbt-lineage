@@ -121,6 +121,15 @@ class RenderTests(unittest.TestCase):
         node = {n["name"]: n for n in page_data(self.out)["nodes"]}["customer_report"]
         self.assertEqual((node["layer"], node["kind"]), ("marts", "mart"))
 
+    def test_a_folder_wide_tag_keeps_the_prefix_kind(self) -> None:
+        # +tags: ["marts"] on the whole folder sets the column; fct_ still says fact.
+        self.set_tags("model.j.fct_orders", ["marts"])
+        self.set_tags("model.j.dim_customers", ["marts"])
+        self.render()
+        kinds = {n["name"]: (n["layer"], n["kind"]) for n in page_data(self.out)["nodes"]}
+        self.assertEqual(kinds["fct_orders"], ("marts", "fct"))
+        self.assertEqual(kinds["dim_customers"], ("marts", "dim"))
+
     def test_config_rules_can_match_on_tags_alone(self) -> None:
         try:
             import yaml  # noqa: F401

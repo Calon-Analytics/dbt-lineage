@@ -1,0 +1,56 @@
+version: 2
+models:
+  - name: stg_customers
+    description: One row per customer, renamed and typed.
+    columns:
+      - name: customer_id
+        description: The customer's id in the shop.
+        tests: [unique, not_null]
+  - name: stg_orders
+    description: One row per order. Test orders are removed.
+    columns:
+      - name: order_id
+        tests: [unique, not_null]
+      - name: customer_id
+        tests:
+          - relationships: {to: ref('stg_customers'), field: customer_id}
+      - name: status
+        tests:
+          - accepted_values: {values: ['placed', 'shipped', 'completed', 'returned']}
+  - name: stg_order_items
+    description: One row per item on an order.
+    columns:
+      - name: order_item_id
+        tests: [unique, not_null]
+      - name: order_id
+        tests:
+          - relationships: {to: ref('stg_orders'), field: order_id}
+  - name: stg_products
+    columns:
+      - name: product_id
+        tests: [unique, not_null]
+  - name: stg_locations
+    columns:
+      - name: location_id
+        tests: [unique, not_null]
+  - name: stg_supplies
+    description: One row per supply per product. A product uses several supplies.
+    columns:
+      - name: supply_uuid
+        tests: [unique, not_null]
+  - name: stg_payments
+    description: One row per Stripe payment attempt, amounts in dollars.
+    columns:
+      - name: payment_id
+        tests: [unique, not_null]
+      - name: payment_method
+        tests:
+          - accepted_values: {values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']}
+  - name: stg_ad_spend
+    columns:
+      - name: spend_id
+        tests: [unique, not_null]
+  - name: stg_web_sessions
+    columns:
+      - name: session_id
+        tests: [unique, not_null]

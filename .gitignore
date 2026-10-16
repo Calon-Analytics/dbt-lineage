@@ -3,3 +3,10 @@ __pycache__/
 .dbt-lineage.json
 *-lineage.html
 .DS_Store
+
+# dbt by-products in the example project; only the manifest is committed
+examples/*/logs/
+examples/*/*.duckdb
+examples/*/.user.yml
+examples/*/target/*
+!examples/*/target/manifest.json

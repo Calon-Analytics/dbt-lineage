@@ -5,7 +5,20 @@ A single, self-contained HTML lineage page for any dbt project, drawn from
 that publishes the page as a Claude artifact at one stable URL, and as a plain Python
 script you can run anywhere.
 
-![The lineage page for a small example project, with fct_orders selected](docs/screenshot.jpg)
+![The lineage page for the example Jaffle Shop project, with fct_orders selected: its upstream and downstream chain is highlighted and the panel shows its description, documented columns and derived columns](docs/screenshot.jpg)
+
+*The [example Jaffle Shop project](examples/jaffle_shop) has three source systems, a seed, a
+snapshot, 25 models, 40 dependencies and 45 tests. Here `fct_orders` is selected.*
+
+## Try it
+
+```bash
+git clone https://github.com/Calon-Analytics/dbt-lineage.git && cd dbt-lineage
+python3 render_lineage.py render --project examples/jaffle_shop --out jaffle-lineage.html
+open jaffle-lineage.html        # or xdg-open on Linux
+```
+
+You don't need dbt for this: the example's `target/manifest.json` is committed.
 
 ## What the page shows
 
@@ -120,6 +133,12 @@ A tag is a deliberate choice, so it beats the name and the folder. Within a pass
 first rule that matches wins. Matching ignores case. A model nothing matches goes in
 **Other**.
 
+Once the column is chosen, the model's *kind* (the group it sits in within the column,
+such as "Facts" or "Dimensions") comes from the most specific rule for that column:
+prefix first, then tag, then folder. So a folder-wide tag like `+tags: ["marts"]` puts
+everything in `models/marts/` in Marts, and the `fct_` and `dim_` prefixes still split
+it into facts and dimensions. The example project does exactly this.
+
 The default rules follow dbt Labs'
 [project structure guide](https://docs.getdbt.com/best-practices/how-we-structure/1-guide-overview):
 
@@ -175,8 +194,9 @@ The Logic summaries stay at every step. A project of about 560 models renders to
 | `SKILL.md` | The Claude Code skill: steps for rendering, publishing and recording. |
 | `render_lineage.py` | The renderer and the `record` command. |
 | `template.html` | The page: layout, drawing, panel and filter. The renderer fills in `__TITLE__` and `__DATA__`. |
-| `examples/lineage.yml` | A commented example configuration. |
-| `tests/` | Unit tests and a small example project, shaped like dbt's jaffle_shop. |
+| `examples/jaffle_shop/` | A complete example dbt project, with its manifest committed. |
+| `examples/lineage.yml` | A commented example configuration that uses every key. |
+| `tests/` | Unit tests and a minimal fixture project. |
 
 ## Development
 
@@ -184,12 +204,19 @@ The Logic summaries stay at every step. A project of about 560 models renders to
 python3 -m unittest discover tests
 ```
 
-The tests use the example project in `tests/fixtures/jaffle_shop`. To see the page:
+The tests use the minimal fixture in `tests/fixtures/jaffle_shop`.
+
+The example project is a real dbt project: its SQL, YAML and tests are all in
+`examples/jaffle_shop/`. After changing it, regenerate the manifest with any dbt 1.x and
+the DuckDB adapter. `dbt parse` doesn't connect to the database:
 
 ```bash
-python3 render_lineage.py render --project tests/fixtures/jaffle_shop \
-    --config examples/lineage.yml --out /tmp/jaffle-lineage.html && open /tmp/jaffle-lineage.html
+pip install dbt-core dbt-duckdb
+cd examples/jaffle_shop && dbt parse --profiles-dir .
 ```
+
+Before committing the new manifest, remove anything personal from it: the absolute paths
+in `root_path` and the `metadata` keys `user_id`, `invocation_id` and `env`.
 
 Model data is embedded as JSON in a `<script type="application/json">` block, with
 `<`, `>` and `&` escaped, so SQL containing `</script>` can't break the page. Each loop is

@@ -1,0 +1,7 @@
+version: 2
+seeds:
+  - name: store_regions
+    description: The region and opening date of each store, kept by the operations team.
+    columns:
+      - name: store_id
+        tests: [unique, not_null]

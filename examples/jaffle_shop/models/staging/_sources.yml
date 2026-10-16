@@ -1,0 +1,23 @@
+version: 2
+sources:
+  - name: ecom
+    description: The shop's order system, loaded nightly.
+    schema: raw_ecom
+    tables:
+      - name: raw_customers
+      - name: raw_orders
+      - name: raw_items
+      - name: raw_products
+      - name: raw_stores
+      - name: raw_supplies
+  - name: stripe
+    description: Card payments from Stripe.
+    schema: raw_stripe
+    tables:
+      - name: payments
+  - name: marketing
+    description: Ad spend and web sessions from the marketing platforms.
+    schema: raw_marketing
+    tables:
+      - name: ad_spend
+      - name: web_sessions

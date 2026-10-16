@@ -46,9 +46,13 @@ works offline apart from the web fonts. The same manifest always gives the same 
 
 ## Requirements
 
-- Python 3.8+. The script uses only the standard library.
-- [PyYAML](https://pypi.org/project/PyYAML/), only if you add a `lineage.yml`. Every dbt
-  install already has it.
+- **Python 3.8 or later, and nothing to install.** The script uses only modules that come
+  with Python (`json`, `argparse`, `re`, `pathlib` and so on), so there's no
+  `pip install` step.
+- **A `lineage.yml` is optional.** Without one, the page uses the defaults described
+  below. Add one only to change the title, group sources or set your own column rules.
+  Reading it needs [PyYAML](https://pypi.org/project/PyYAML/), which every dbt install
+  already includes.
 - A dbt manifest. `dbt parse`, `dbt compile`, `dbt run` and `dbt build` all write
   `target/manifest.json`. Tested with manifest schema v12 (dbt 1.8 and later). The
   script reads only long-standing manifest fields, so older 1.x manifests should work.

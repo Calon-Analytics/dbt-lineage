@@ -1,0 +1,39 @@
+# Optional. Put this file in the root of your dbt project (next to dbt_project.yml).
+# Every key is optional; an unknown key is an error, so a typo never fails silently.
+
+# Page title. Default: the manifest's project_name.
+title: Jaffle Shop
+
+# Group source systems for the filter. Without partitions the filter lists each dbt
+# source name; with them it lists these labels (plus "Other sources" for the rest).
+partition_name: Region
+partitions:
+  - label: EU
+    sources: [shop_eu, erp_eu]      # dbt source names (the `name:` in sources.yml)
+  - label: US
+    sources: [shop_us, erp_us]
+
+# Columns, left to right. "source" and "other" are added if you leave them out.
+layers:
+  - {id: source, label: Sources}
+  - {id: snapshots, label: Snapshots}
+  - {id: staging, label: Staging}
+  - {id: intermediate, label: Intermediate}
+  - {id: marts, label: Marts}
+  - {id: reporting, label: Reporting}
+  - {id: other, label: Other}
+
+# How models are put into columns. First match wins: every rule's name prefixes are
+# tried first, then every rule's folders (any directory on the path under models/).
+# Supplying `rules` replaces the defaults entirely.
+rules:
+  - {kind: stg, label: "Staging models (stg_)", layer: staging, prefixes: [stg_], folders: [staging]}
+  - {kind: int, label: "Intermediate models (int_)", layer: intermediate, prefixes: [int_], folders: [intermediate]}
+  - {kind: fct, label: "Facts (fct_)", layer: marts, prefixes: [fct_]}
+  - {kind: dim, label: "Dimensions (dim_)", layer: marts, prefixes: [dim_]}
+  - {kind: rpt, label: "Reports (rpt_)", layer: reporting, prefixes: [rpt_], folders: [reporting]}
+
+# Kinds that are shared across sources (conformed dimensions, say): they keep their own
+# source systems, but do not pass them on, so a mart built on dim_customers is not
+# tagged with every system that feeds the customer dimension.
+shared_kinds: [dim]

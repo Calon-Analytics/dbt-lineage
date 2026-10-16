@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+.dbt-lineage.json
+*-lineage.html
+.DS_Store

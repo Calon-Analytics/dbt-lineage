@@ -1,0 +1,212 @@
+{
+ "metadata": {
+  "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v12.json",
+  "dbt_version": "1.9.0",
+  "generated_at": "2026-10-16T12:00:00.000000Z",
+  "project_name": "jaffle_shop"
+ },
+ "nodes": {
+  "model.j.customer_report": {
+   "columns": {},
+   "config": {
+    "materialized": "view"
+   },
+   "depends_on": {
+    "nodes": [
+     "model.j.dim_customers",
+     "model.j.fct_orders"
+    ]
+   },
+   "description": "",
+   "name": "customer_report",
+   "original_file_path": "models/reporting/customer_report.sql",
+   "raw_code": "select * from {{ ref('dim_customers') }} c left join {{ ref('fct_orders') }} o on true",
+   "resource_type": "model",
+   "schema": "analytics"
+  },
+  "model.j.dim_customers": {
+   "columns": {},
+   "config": {
+    "materialized": "table"
+   },
+   "depends_on": {
+    "nodes": [
+     "model.j.stg_customers"
+    ]
+   },
+   "description": "",
+   "name": "dim_customers",
+   "original_file_path": "models/marts/dim_customers.sql",
+   "raw_code": "select * from {{ ref('stg_customers') }}",
+   "resource_type": "model",
+   "schema": "analytics"
+  },
+  "model.j.fct_orders": {
+   "columns": {
+    "amount": {},
+    "order_id": {
+     "description": "Primary key"
+    }
+   },
+   "config": {
+    "materialized": "table"
+   },
+   "depends_on": {
+    "nodes": [
+     "model.j.int_order_totals"
+    ]
+   },
+   "description": "Orders with amounts.",
+   "name": "fct_orders",
+   "original_file_path": "models/marts/fct_orders.sql",
+   "raw_code": "select * from {{ ref('int_order_totals') }}",
+   "resource_type": "model",
+   "schema": "analytics"
+  },
+  "model.j.int_order_totals": {
+   "columns": {},
+   "config": {
+    "materialized": "view"
+   },
+   "depends_on": {
+    "nodes": [
+     "model.j.stg_orders",
+     "seed.j.stg_payments"
+    ]
+   },
+   "description": "",
+   "name": "int_order_totals",
+   "original_file_path": "models/intermediate/int_order_totals.sql",
+   "raw_code": "with o as (select * from {{ ref('stg_orders') }}),\np as (select * from {{ ref('stg_payments') }})\nselect o.order_id, sum(p.amount) / 100.0 as amount from o join p using (order_id) group by 1",
+   "resource_type": "model",
+   "schema": "analytics"
+  },
+  "model.j.stg_customers": {
+   "columns": {},
+   "config": {
+    "materialized": "view"
+   },
+   "depends_on": {
+    "nodes": [
+     "source.j.jaffle.customers"
+    ]
+   },
+   "description": "",
+   "name": "stg_customers",
+   "original_file_path": "models/staging/stg_customers.sql",
+   "raw_code": "select id as customer_id, first_name from {{ source('jaffle','customers') }}",
+   "resource_type": "model",
+   "schema": "analytics"
+  },
+  "model.j.stg_orders": {
+   "columns": {},
+   "config": {
+    "materialized": "view"
+   },
+   "depends_on": {
+    "nodes": [
+     "source.j.jaffle.orders"
+    ]
+   },
+   "description": "",
+   "name": "stg_orders",
+   "original_file_path": "models/staging/stg_orders.sql",
+   "raw_code": "-- One row per order, renamed.\nselect id as order_id, user_id as customer_id, status, cast(order_date as date) as order_date from {{ source('jaffle','orders') }}\nwhere status != 'test'",
+   "resource_type": "model",
+   "schema": "analytics"
+  },
+  "seed.j.stg_payments": {
+   "depends_on": {
+    "nodes": []
+   },
+   "name": "raw_payments",
+   "original_file_path": "seeds/raw_payments.csv",
+   "resource_type": "seed"
+  },
+  "snapshot.j.orders_snap": {
+   "depends_on": {
+    "nodes": [
+     "source.j.jaffle.orders"
+    ]
+   },
+   "name": "orders_snapshot",
+   "original_file_path": "snapshots/orders_snapshot.sql",
+   "raw_code": "select * from {{ source('jaffle','orders') }}",
+   "resource_type": "snapshot"
+  },
+  "test.j.assert_positive": {
+   "config": {},
+   "depends_on": {
+    "nodes": [
+     "model.j.fct_orders"
+    ]
+   },
+   "name": "assert_fct_orders_positive",
+   "raw_code": "-- Amounts are never negative.\nselect * from {{ ref('fct_orders') }} where amount < 0",
+   "resource_type": "test"
+  },
+  "test.j.rel": {
+   "attached_node": "model.j.stg_orders",
+   "config": {
+    "severity": "warn"
+   },
+   "depends_on": {
+    "nodes": [
+     "model.j.stg_orders",
+     "model.j.stg_customers"
+    ]
+   },
+   "name": "relationships_x",
+   "resource_type": "test",
+   "test_metadata": {
+    "kwargs": {
+     "column_name": "customer_id",
+     "field": "customer_id",
+     "to": "ref('stg_customers')"
+    },
+    "name": "relationships"
+   }
+  },
+  "test.j.unique_fct_orders_order_id": {
+   "attached_node": "model.j.fct_orders",
+   "config": {
+    "severity": "ERROR"
+   },
+   "depends_on": {
+    "nodes": [
+     "model.j.fct_orders"
+    ]
+   },
+   "name": "unique_fct_orders_order_id",
+   "resource_type": "test",
+   "test_metadata": {
+    "kwargs": {
+     "column_name": "order_id"
+    },
+    "name": "unique"
+   }
+  }
+ },
+ "sources": {
+  "source.j.jaffle.customers": {
+   "columns": {},
+   "database": "raw",
+   "description": "",
+   "identifier": "customers",
+   "name": "customers",
+   "resource_type": "source",
+   "schema": "jaffle",
+   "source_name": "jaffle"
+  },
+  "source.j.jaffle.orders": {
+   "columns": {},
+   "database": "raw",
+   "description": "",
+   "identifier": "orders",
+   "name": "orders",
+   "resource_type": "source",
+   "schema": "jaffle",
+   "source_name": "jaffle"
+  }
+ }
+}
